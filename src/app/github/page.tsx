@@ -10,6 +10,8 @@ import {
   Database, Activity, GitPullRequest, LogOut, GitBranch, Star, GitFork, Users, Layout
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useFeatureAccess } from '../../hooks/useFeatureAccess';
+import { LoginRequiredGate, PremiumFeatureGate } from '../../components/AccessGates';
 
 interface GitHubStats {
   username: string;
@@ -560,6 +562,7 @@ const getUpskillingProjects = (languages: Array<{ name: string; percentage: numb
 
 export default function GitHubDashboard() {
   const { user } = useAuth();
+  const { remainingSearches, consumeSearch, isLocked } = useFeatureAccess('github');
   const [isClient, setIsClient] = useState(false);
   const [githubUser, setGithubUser] = useState('');
   const [inputUser, setInputUser] = useState('');
@@ -746,6 +749,9 @@ export default function GitHubDashboard() {
     e.preventDefault();
     if (!inputUser.trim()) return;
 
+    if (isLocked) return;
+    if (!consumeSearch()) return;
+
     setIsIngesting(true);
     setIngestionStep(0);
 
@@ -869,6 +875,21 @@ export default function GitHubDashboard() {
   const dynamicHeatmapData = parseRealCalendarHeatmap(calendarString, githubUser || 'satoshin');
 
   // If no user connected
+  if (!user) {
+    return (
+      <div style={{
+        display: 'flex',
+        minHeight: '100vh',
+        backgroundColor: '#f6f5f0',
+        padding: '2rem',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <LoginRequiredGate featureName="GitHub" />
+      </div>
+    );
+  }
+
   if (!githubUser) {
     return (
       <div style={{
@@ -922,7 +943,9 @@ export default function GitHubDashboard() {
           zIndex: 10,
           boxSizing: 'border-box'
         }}>
-          {!isIngesting ? (
+          {isLocked ? (
+            <PremiumFeatureGate featureName="GitHub" />
+          ) : !isIngesting ? (
             <form onSubmit={handleConnect} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <Image src="/github_logo.png" alt="GitHub Logo" width={150} height={42} style={{ objectFit: 'contain' }} />
@@ -962,27 +985,33 @@ export default function GitHubDashboard() {
                 />
               </div>
 
-              <button 
-                type="submit" 
-                className="btn-primary" 
-                style={{ 
-                  justifyContent: 'center', 
-                  padding: '0.9rem', 
-                  borderRadius: '12px', 
-                  fontSize: '1rem', 
-                  fontWeight: 600,
-                  backgroundColor: 'var(--accent-green)',
-                  borderColor: 'var(--accent-green)',
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.6rem',
-                  cursor: 'pointer'
-                }}
-              >
-                <span>Extract Repository DNA</span>
-                <ChevronRight size={18} />
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
+                <button 
+                  type="submit" 
+                  className="btn-primary" 
+                  style={{ 
+                    justifyContent: 'center', 
+                    padding: '0.9rem', 
+                    borderRadius: '12px', 
+                    fontSize: '1rem', 
+                    fontWeight: 600,
+                    backgroundColor: 'var(--accent-green)',
+                    borderColor: 'var(--accent-green)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.6rem',
+                    cursor: 'pointer',
+                    width: '100%'
+                  }}
+                >
+                  <span>Extract Repository DNA</span>
+                  <ChevronRight size={18} />
+                </button>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {remainingSearches} / 10 free searches remaining
+                </span>
+              </div>
 
               <div style={{ marginTop: '0.5rem' }}>
                 <Link href="/" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textDecoration: 'none' }}>

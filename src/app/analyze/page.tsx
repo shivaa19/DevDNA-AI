@@ -30,6 +30,7 @@ export default function AnalyzeProfile() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+const [unsolvedProblems, setUnsolvedProblems] = useState<Array<{ id: string; title: string; titleSlug: string; difficulty: string }>>([]);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -130,6 +131,7 @@ export default function AnalyzeProfile() {
       }
 
       if (formData.competitiveSelect === 'LeetCode' && formData.competitiveUsername) {
+        // Fetch LeetCode stats
         fetchPromises.push(
           fetch(`/api/leetcode?username=${encodeURIComponent(formData.competitiveUsername.trim())}`)
             .then(res => res.ok ? res.json() : null)
@@ -141,6 +143,17 @@ export default function AnalyzeProfile() {
               }
             })
             .catch(err => console.error("LeetCode sync error:", err))
+        );
+        // Fetch unsolved problem suggestions
+        fetchPromises.push(
+          fetch(`/api/leetcode/unsolved?username=${encodeURIComponent(formData.competitiveUsername.trim())}`)
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+              if (data && data.unsolved) {
+                setUnsolvedProblems(data.unsolved);
+              }
+            })
+            .catch(err => console.error("LeetCode unsolved fetch error:", err))
         );
       }
 
@@ -328,6 +341,20 @@ export default function AnalyzeProfile() {
             </div>
           </div>
         </form>
+
+{/* LeetCode Suggested Problems */}
+{unsolvedProblems.length > 0 && (
+  <section className="unsolved-section">
+    <h3 className="col-title"><Sparkles size={20} /> Next in Striver's A2Z Roadmap</h3>
+    <ul className="unsolved-list">
+      {unsolvedProblems.map(p => (
+        <li key={p.id} className="unsolved-item">
+          <a href={`https://leetcode.com/problems/${p.titleSlug}`} target="_blank" rel="noopener noreferrer">{p.title} ({p.difficulty})</a>
+        </li>
+      ))}
+    </ul>
+  </section>
+)}
 
         <div className="analyze-footer">
           <button type="button" onClick={handleSubmit} disabled={isSubmitting || isSuccess} className="btn-primary btn-large" style={{ opacity: isSubmitting ? 0.8 : 1, transition: 'all 0.3s' }}>

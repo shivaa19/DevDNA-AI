@@ -265,8 +265,55 @@ export default function Login() {
         </div>
       ))}
 
-      <div className="login-container">
-        <div className="login-header">
+      <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', justifyContent: 'center', width: '100%', maxWidth: '1000px', zIndex: 10, position: 'relative', flexWrap: 'wrap' }}>
+        <div className="login-plans" style={{
+          background: 'rgba(255, 255, 255, 0.75)',
+          backdropFilter: 'blur(24px)',
+          padding: '2.5rem',
+          borderRadius: '28px',
+          width: '100%',
+          maxWidth: '400px',
+          boxShadow: '0 30px 60px rgba(0,0,0,0.04)',
+          border: '1px solid rgba(225, 222, 214, 0.5)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.5rem'
+        }}>
+          <h2 className="serif" style={{ fontSize: '1.75rem', margin: 0, textAlign: 'center', color: 'var(--text-main)' }}>Choose Your Plan</h2>
+          
+          <div style={{
+            padding: '1.5rem',
+            borderRadius: '16px',
+            border: '2px solid #e5e3dc',
+            backgroundColor: '#ffffff'
+          }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem' }}>Free Plan</h3>
+            <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+              <li>Access to all features</li>
+              <li>Limit of <strong style={{color: 'var(--text-main)'}}>10 free searches</strong> per feature</li>
+              <li>Basic AI insights</li>
+            </ul>
+          </div>
+
+          <div style={{
+            padding: '1.5rem',
+            borderRadius: '16px',
+            border: '2px solid var(--accent-green)',
+            backgroundColor: 'var(--accent-light-green)',
+            position: 'relative'
+          }}>
+            <div style={{ position: 'absolute', top: '-10px', right: '15px', backgroundColor: 'var(--accent-green)', color: '#ffffff', fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '12px', fontWeight: 700, textTransform: 'uppercase' }}>Recommended</div>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--accent-green)', marginBottom: '0.5rem' }}>Pro Plan</h3>
+            <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.9rem', color: '#2d5440', lineHeight: 1.6 }}>
+              <li><strong>Unlimited</strong> searches across all modules</li>
+              <li>Deep Developer DNA Analysis</li>
+              <li>Priority support & tailored upskilling</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="login-container">
+          <div className="login-header">
           <h1 className="serif">Welcome Back</h1>
           <p>Enter your credentials to access your trajectory dashboard.</p>
         </div>
@@ -316,6 +363,7 @@ export default function Login() {
         <div className="login-footer">
           Don't have an account? <Link href="/register">Sign Up</Link>
         </div>
+      </div>
       </div>
     </main>
   );

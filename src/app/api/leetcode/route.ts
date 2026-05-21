@@ -8,13 +8,20 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Username is required' }, { status: 400 });
   }
 
-  // Parse username
-  let username = rawUsername.trim();
-  username = username.replace(/^(https?:\/\/)?(www\.)?/, '');
-  if (username.startsWith('leetcode.com/')) {
-    username = username.replace(/^leetcode\.com\/(u\/)?/, '');
-  }
-  username = username.split('/')[0].split('?')[0].trim();
+  // Parse username with robust handling for full URLs and common patterns
+  const parseUsername = (input: string): string => {
+    let name = input.trim();
+    // Remove protocol and www
+    name = name.replace(/^(https?:\/\/)?(www\.)?/, '');
+    // Remove leading domain if present
+    if (name.startsWith('leetcode.com/')) {
+      name = name.replace(/^leetcode\.com\/(u\/)?/, '');
+    }
+    // Strip any trailing path or query parameters
+    name = name.split('/')[0].split('?')[0].trim();
+    return name;
+  };
+  let username = parseUsername(rawUsername);
 
   try {
     const gqlQuery = `

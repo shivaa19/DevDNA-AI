@@ -9,6 +9,9 @@ import {
   Search, Upload, FileText, CheckCircle2, 
   Sparkles, Plus, AlertCircle, RefreshCw, X, HelpCircle as HelpIcon
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useFeatureAccess } from '../../hooks/useFeatureAccess';
+import { LoginRequiredGate, PremiumFeatureGate } from '../../components/AccessGates';
 
 // Interfaces for our parsed resume structure
 interface ResumeExperience {
@@ -47,6 +50,8 @@ interface Suggestion {
 }
 
 export default function ResumeOptimizer() {
+  const { user } = useAuth();
+  const { remainingSearches, consumeSearch, isLocked } = useFeatureAccess('resume');
   const [step, setStep] = useState<1 | 2>(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [targetRole, setTargetRole] = useState('');
@@ -650,6 +655,9 @@ function rewriteBullet(bullet: string): { improvement: string; reason: string } 
     if (!targetRole) return;
     if (!file && !pastedText) return;
 
+    if (isLocked) return;
+    if (!consumeSearch()) return;
+
     setIsAnalyzing(true);
     setLoadingStep(1);
 
@@ -770,6 +778,11 @@ function rewriteBullet(bullet: string): { improvement: string; reason: string } 
 
         {step === 1 ? (
           /* STEP 1: UPLOAD STATE */
+          !user ? (
+            <LoginRequiredGate featureName="Resume Optimizer" />
+          ) : isLocked ? (
+            <PremiumFeatureGate featureName="Resume Optimizer" />
+          ) : (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -967,45 +980,51 @@ function rewriteBullet(bullet: string): { improvement: string; reason: string } 
                 </div>
               )}
 
-              <button 
-                type="submit" 
-                disabled={isAnalyzing || (!file && !pastedText) || !targetRole}
-                style={{
-                  padding: '1rem',
-                  borderRadius: '12px',
-                  backgroundColor: '#3f7055',
-                  color: '#ffffff',
-                  border: 'none',
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  cursor: (isAnalyzing || (!file && !pastedText) || !targetRole) ? 'not-allowed' : 'pointer',
-                  opacity: (isAnalyzing || (!file && !pastedText) || !targetRole) ? 0.7 : 1,
-                  transition: 'all 0.2s',
-                  marginTop: '0.5rem'
-                }}
-              >
-                {isAnalyzing ? (
-                  <>
-                    <RefreshCw size={18} className="spin-anim" />
-                    <span>
-                      {loadingStep === 1 && "Ingesting file..."}
-                      {loadingStep === 2 && "Extracting text via PDFJS..."}
-                      {loadingStep === 3 && "Analyzing role alignment..."}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={18} />
-                    <span>Analyze & Get Recommendations</span>
-                  </>
-                )}
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
+                <button 
+                  type="submit" 
+                  disabled={isAnalyzing || (!file && !pastedText) || !targetRole}
+                  style={{
+                    padding: '1rem',
+                    borderRadius: '12px',
+                    backgroundColor: '#3f7055',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    cursor: (isAnalyzing || (!file && !pastedText) || !targetRole) ? 'not-allowed' : 'pointer',
+                    opacity: (isAnalyzing || (!file && !pastedText) || !targetRole) ? 0.7 : 1,
+                    transition: 'all 0.2s',
+                    width: '100%'
+                  }}
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <RefreshCw size={18} className="spin-anim" />
+                      <span>
+                        {loadingStep === 1 && "Ingesting file..."}
+                        {loadingStep === 2 && "Extracting text via PDFJS..."}
+                        {loadingStep === 3 && "Analyzing role alignment..."}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={18} />
+                      <span>Analyze & Get Recommendations</span>
+                    </>
+                  )}
+                </button>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {remainingSearches} / 10 free searches remaining
+                </span>
+              </div>
             </form>
           </div>
+          )
         ) : (
           /* STEP 2: ANALYSIS RESULTS STATE */
           <div style={{
@@ -1298,6 +1317,7 @@ function rewriteBullet(bullet: string): { improvement: string; reason: string } 
                         >
                           <Sparkles size={12} /> Apply Rewrite
                         </button>
+
                       </div>
                     ))}
                   </div>

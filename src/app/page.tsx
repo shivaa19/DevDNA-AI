@@ -21,6 +21,22 @@ export default function Home() {
   const [utrInput, setUtrInput] = useState('');
   const [sessionTimer, setSessionTimer] = useState(SESSION_DURATION);
   const [verifying, setVerifying] = useState(false);
+  const [liveIntegrationsCount, setLiveIntegrationsCount] = useState(3);
+
+  useEffect(() => {
+    try {
+      const registered = localStorage.getItem('devdna_registered_users');
+      if (registered) {
+        const users = JSON.parse(registered);
+        if (Array.isArray(users)) {
+          // Increase count by 1 for each registered user (assuming each user has ~3 integrations)
+          setLiveIntegrationsCount(3 + (users.length * 3));
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing users", e);
+    }
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -95,7 +111,7 @@ export default function Home() {
       {/* Stats */}
       <section className="stats">
         <div className="stat-item">
-          <div className="stat-number">3</div>
+          <div className="stat-number">{liveIntegrationsCount}</div>
           <div className="stat-label">LIVE INTEGRATIONS</div>
         </div>
         <div className="stat-item">

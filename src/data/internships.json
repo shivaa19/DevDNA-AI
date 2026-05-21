@@ -1,0 +1,62 @@
+[
+  {
+    "id": "1",
+    "title": "Software Engineering Intern",
+    "company": "TechNova",
+    "location": "Remote",
+    "url": "https://indeed.com/q-remote-internship-jobs.html",
+    "source": "Indeed",
+    "skills": ["React", "Node.js", "TypeScript"],
+    "description": "Join our core engineering team to build scalable web applications. You will work on frontend performance optimization and backend API design."
+  },
+  {
+    "id": "2",
+    "title": "Frontend Developer Intern",
+    "company": "InnovateX",
+    "location": "Remote",
+    "url": "https://unstop.com/internship",
+    "source": "Unstop",
+    "skills": ["React", "JavaScript", "CSS"],
+    "description": "Help us build the next generation of user interfaces with React and Tailwind CSS. Great opportunity for CS undergraduates."
+  },
+  {
+    "id": "3",
+    "title": "Data Science Intern",
+    "company": "DataInsights",
+    "location": "Remote",
+    "url": "https://internshala.com/internships/",
+    "source": "Internshala",
+    "skills": ["Python", "Pandas", "Machine Learning"],
+    "description": "Assist in data cleaning, model building, and result visualization for our client analytics platform."
+  },
+  {
+    "id": "4",
+    "title": "Backend Engineering Intern",
+    "company": "CloudScale",
+    "location": "Bangalore, India (Hybrid)",
+    "url": "https://www.skillindiadigital.gov.in/internship",
+    "source": "Skill India",
+    "skills": ["Python", "Django", "PostgreSQL"],
+    "description": "Work on distributed systems and microservices architecture to support millions of users."
+  },
+  {
+    "id": "5",
+    "title": "Full Stack Developer Intern",
+    "company": "GovTech Solutions",
+    "location": "Remote",
+    "url": "https://internship.aicte-india.org/",
+    "source": "AICTE",
+    "skills": ["MERN Stack", "REST APIs"],
+    "description": "Contribute to e-governance platforms by developing full-stack features using MongoDB, Express, React, and Node.js."
+  },
+  {
+    "id": "6",
+    "title": "UI/UX Design Intern",
+    "company": "CreativeMinds",
+    "location": "Pune, India (On-site)",
+    "url": "https://www.makeintern.com/",
+    "source": "MakeIntern",
+    "skills": ["Figma", "Prototyping", "Wireframing"],
+    "description": "Collaborate with our product team to design intuitive and engaging user experiences for our mobile apps."
+  }
+]

@@ -21,7 +21,12 @@ export default function Register() {
   };
 
   return (
-    <main className="login-page">
+    <main className="login-page" style={{
+      backgroundImage: 'url("/login_background_green.png")',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat'
+    }}>
       {/* Animated Glowing Background Orbs */}
       <div className="login-orb-1"></div>
       <div className="login-orb-2"></div>

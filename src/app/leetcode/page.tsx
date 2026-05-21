@@ -5,46 +5,80 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Sparkles, ChevronRight } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useFeatureAccess } from '../../hooks/useFeatureAccess';
+import { LoginRequiredGate, PremiumFeatureGate } from '../../components/AccessGates';
 
 export default function LeetcodeIngest() {
   const router = useRouter();
+  const { user } = useAuth();
+  const { remainingSearches, consumeSearch, isLocked } = useFeatureAccess('leetcode');
   const [username, setUsername] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('Initiating pipeline...');
+  const [statusMessage, setStatusMessage] = useState('');
+  const [error, setError] = useState('');
+  const [profileData, setProfileData] = useState<any>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim()) return;
+
+    if (isLocked) return;
+    if (!consumeSearch()) return;
+
     setIsExtracting(true);
+    setError('');
+    setStatusMessage('Connecting to LeetCode API...');
 
-    let finalUsername = username.trim();
-    if (finalUsername.includes('leetcode.com/')) {
-      const parts = finalUsername.split('leetcode.com/');
-      if (parts.length > 1) {
-        finalUsername = parts[1].split('/')[0].trim();
+    try {
+      const res = await fetch(`/api/leetcode?username=${encodeURIComponent(username.trim())}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to fetch profile');
       }
+
+      setStatusMessage('Synthesizing algorithmic skill profile...');
+      
+      // Simulate brief processing for UX
+      setTimeout(() => {
+        setProfileData(data);
+        setIsExtracting(false);
+      }, 800);
+
+    } catch (err: any) {
+      setError(err.message || 'An error occurred');
+      setIsExtracting(false);
     }
-
-    const stages = [
-      'Connecting to LeetCode API...',
-      'Fetching solved problem statistics...',
-      'Analyzing complexity & runtime efficiency...',
-      'Synthesizing algorithmic skill profile...',
-      'Redirecting to intelligence dashboard...'
-    ];
-
-    let currentStage = 0;
-    const interval = setInterval(() => {
-      if (currentStage < stages.length) {
-        setStatusMessage(stages[currentStage]);
-        currentStage++;
-      } else {
-        clearInterval(interval);
-        localStorage.setItem('devdna_leetcode_user', finalUsername);
-        router.push('/skill-matrix');
-      }
-    }, 800);
   };
+
+  const confirmAndProceed = () => {
+    if (profileData) {
+      localStorage.setItem('devdna_leetcode_user', profileData.username);
+      localStorage.setItem('devdna_leetcode_stats', JSON.stringify(profileData));
+      router.push('/skill-matrix');
+    }
+  };
+
+  if (!user) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundImage: 'url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQEVm10itaY4iVE9Pxbf7Kk25XbJAwsrBM5-Q&s")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        position: 'relative'
+      }}>
+        <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(247, 246, 241, 0.65)', backdropFilter: 'blur(3px)', zIndex: 1 }}></div>
+        <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: '540px' }}>
+          <LoginRequiredGate featureName="LeetCode" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -53,11 +87,11 @@ export default function LeetcodeIngest() {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundImage: 'radial-gradient(circle at 10% 20%, rgba(253, 239, 219, 0.4) 0%, rgba(244, 240, 227, 0.5) 90%), url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQEVm10itaY4iVE9Pxbf7Kk25XbJAwsrBM5-Q&s")',
+      backgroundImage: 'url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQEVm10itaY4iVE9Pxbf7Kk25XbJAwsrBM5-Q&s")',
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
-      backgroundColor: '#f7f6f1',
+      backgroundColor: '#fdfdfc',
       padding: '2rem',
       position: 'relative'
     }}>
@@ -69,28 +103,6 @@ export default function LeetcodeIngest() {
         backdropFilter: 'blur(3px)',
         zIndex: 1
       }}></div>
-
-      {/* Back button */}
-      <Link href="/" style={{
-        position: 'absolute',
-        top: '2rem',
-        left: '2rem',
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        color: '#475569',
-        fontSize: '0.88rem',
-        fontWeight: 600,
-        textDecoration: 'none',
-        padding: '0.5rem 1rem',
-        borderRadius: '8px',
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        border: '1px solid #efeadd',
-        zIndex: 10,
-        transition: 'all 0.2s'
-      }}>
-        <ArrowLeft size={16} /> Back to Hub
-      </Link>
 
       {/* Center card */}
       <div style={{
@@ -106,43 +118,50 @@ export default function LeetcodeIngest() {
         boxShadow: '0 20px 50px rgba(60, 50, 30, 0.08)',
         textAlign: 'center'
       }}>
-        {/* LeetCode Icon Header */}
+        {/* LeetCode Logo Header */}
         <div style={{
-          width: '64px',
-          height: '64px',
-          borderRadius: '16px',
-          backgroundColor: '#ffffff',
           display: 'flex',
-          alignItems: 'center',
           justifyContent: 'center',
-          margin: '0 auto 1.5rem',
-          boxShadow: '0 8px 20px rgba(255, 161, 22, 0.12)',
-          border: '1px solid #ffe8cc'
+          margin: '0 auto 1.5rem'
         }}>
-          <svg viewBox="0 0 24 24" width="32" height="32" fill="#ffa116">
-            <path d="M13.483 0a1.374 1.374 0 0 0-.961.438L7.116 6.226l-3.854 4.126a5.266 5.266 0 0 0-1.209 2.104 5.35 5.35 0 0 0-.125.513 5.527 5.527 0 0 0 .062 2.362 5.83 5.83 0 0 0 .349 1.017 5.938 5.938 0 0 0 1.271 1.818l4.277 4.193.039.038c2.248 2.165 5.852 2.133 8.063-.074l2.396-2.392c.54-.54.54-1.414.074-1.954l-5.63-6.17c-.208-.227-.376-.484-.505-.765l2.062-2.208c.54-.54.54-1.414.074-1.954l-2.396-2.392a1.374 1.374 0 0 0-1.016-.438h-.038zm-1.802 11.238l-2.072 2.217a1.37 1.37 0 0 0 .505 2.133l5.63 6.17c.54.54 1.414.54 1.954 0l2.396-2.392c.54-.54.54-1.414 0-1.954l-5.63-6.17c-.217-.236-.505-.424-.812-.537l-.039-.019-.048-.009h-.038a1.37 1.37 0 0 0-.859.575z"/>
-          </svg>
+          <Image src="/leetcode_logo.png" alt="LeetCode" width={180} height={45} style={{ objectFit: 'contain' }} />
         </div>
 
-        <h2 style={{
-          fontSize: '1.8rem',
-          fontWeight: 600,
-          color: '#1e293b',
-          marginBottom: '0.5rem',
-          fontFamily: 'var(--font-serif, Georgia, serif)'
-        }}>
-          Algorithmic Ingestion
-        </h2>
-        <p style={{
-          fontSize: '0.9rem',
-          color: '#64748b',
-          lineHeight: 1.6,
-          marginBottom: '2rem'
-        }}>
-          Provide your LeetCode username or profile link below to synthesize your solving patterns, completion speeds, and algorithmic DNA.
-        </p>
+        {!profileData ? (
+          <>
+            <h2 style={{
+              fontSize: '1.8rem',
+              fontWeight: 600,
+              color: '#1e293b',
+              marginBottom: '0.5rem',
+              fontFamily: 'var(--font-serif, Georgia, serif)'
+            }}>
+              LeetCode Intelligence
+            </h2>
+            <p style={{
+              fontSize: '0.9rem',
+              color: '#64748b',
+              lineHeight: 1.6,
+              marginBottom: '2rem'
+            }}>
+              Provide your LeetCode username or profile link below to synthesize your solving patterns, completion speeds, and algorithmic DNA.
+            </p>
+          </>
+        ) : (
+          <h2 style={{
+            fontSize: '1.5rem',
+            fontWeight: 600,
+            color: '#1e293b',
+            marginBottom: '1.5rem',
+            fontFamily: 'var(--font-serif, Georgia, serif)'
+          }}>
+            Profile Verified
+          </h2>
+        )}
 
-        {!isExtracting ? (
+        {isLocked ? (
+          <PremiumFeatureGate featureName="LeetCode" />
+        ) : !isExtracting && !profileData ? (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', textAlign: 'left' }}>
             <div>
               <label style={{
@@ -173,34 +192,45 @@ export default function LeetcodeIngest() {
                   transition: 'border-color 0.2s, box-shadow 0.2s'
                 }}
               />
+              {error && (
+                <div style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                  {error}
+                </div>
+              )}
             </div>
 
-            <button
-              type="submit"
-              style={{
-                width: '100%',
-                padding: '0.85rem',
-                borderRadius: '12px',
-                border: 'none',
-                background: 'linear-gradient(135deg, #ffa116 0%, #f59e0b 100%)',
-                color: '#ffffff',
-                fontSize: '0.95rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                boxShadow: '0 4px 15px rgba(255, 161, 22, 0.25)',
-                transition: 'all 0.2s'
-              }}
-            >
-              Connect Profile <ChevronRight size={16} />
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center', width: '100%' }}>
+              <button
+                type="submit"
+                style={{
+                  width: '100%',
+                  padding: '0.85rem',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #ffa116 0%, #f59e0b 100%)',
+                  color: '#ffffff',
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  boxShadow: '0 4px 15px rgba(255, 161, 22, 0.25)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Analyze LeetCode Profile
+                <Sparkles size={16} />
+              </button>
+              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                {remainingSearches} / 10 free searches remaining
+              </span>
+            </div>
           </form>
-        ) : (
+        ) : isExtracting ? (
           <div style={{ padding: '1rem 0' }}>
-            {/* Loading spinner */}
             <div style={{
               width: '40px',
               height: '40px',
@@ -227,7 +257,76 @@ export default function LeetcodeIngest() {
               {statusMessage}
             </div>
           </div>
-        )}
+        ) : profileData ? (
+          <div style={{ textAlign: 'center' }}>
+            {profileData.avatar ? (
+              <img src={profileData.avatar} alt="Avatar" style={{ width: 80, height: 80, borderRadius: '50%', margin: '0 auto 1rem', display: 'block', border: '3px solid #ffa116' }} />
+            ) : (
+              <div style={{ width: 80, height: 80, borderRadius: '50%', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', border: '3px solid #ffa116', fontSize: '1.5rem', fontWeight: 'bold', color: '#475569' }}>
+                {profileData.username?.charAt(0).toUpperCase()}
+              </div>
+            )}
+            
+            <h3 style={{ margin: '0 0 0.2rem', fontSize: '1.2rem', color: '#1e293b' }}>
+              {profileData.realName || profileData.username}
+            </h3>
+            <p style={{ margin: '0 0 1rem', color: '#64748b', fontSize: '0.9rem' }}>
+              @{profileData.username}
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
+              <div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#10b981' }}>{profileData.solved?.total || 0}</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase' }}>Solved</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#ffa116' }}>#{profileData.ranking || 'N/A'}</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase' }}>Rank</div>
+              </div>
+            </div>
+
+            <button
+              onClick={confirmAndProceed}
+              style={{
+                width: '100%',
+                padding: '0.85rem',
+                borderRadius: '12px',
+                border: 'none',
+                background: '#10b981',
+                color: '#ffffff',
+                fontSize: '0.95rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                boxShadow: '0 4px 15px rgba(16, 185, 129, 0.25)',
+                transition: 'all 0.2s'
+              }}
+            >
+              Confirm & Continue <ChevronRight size={16} />
+            </button>
+            <button
+              onClick={() => { setProfileData(null); setUsername(''); }}
+              style={{
+                width: '100%',
+                padding: '0.85rem',
+                marginTop: '0.75rem',
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0',
+                background: 'transparent',
+                color: '#64748b',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              Not You? Try Again
+            </button>
+          </div>
+        ) : null}
 
         <div style={{
           marginTop: '2.5rem',

@@ -11,6 +11,9 @@ import {
   MessageSquare, UserPlus, Users, Plus, Check, Play, Search, Bell
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useFeatureAccess } from '../../hooks/useFeatureAccess';
+import { LoginRequiredGate, PremiumFeatureGate } from '../../components/AccessGates';
+import InternshipCard from '../../components/InternshipCard';
 
 interface LinkedInStats {
   username: string;
@@ -228,6 +231,7 @@ const ingestionSteps = [
 
 export default function LinkedInIntel() {
   const { user } = useAuth();
+  const { remainingSearches, consumeSearch, isLocked } = useFeatureAccess('linkedin');
   const [isClient, setIsClient] = useState(false);
   const [linkedinUser, setLinkedinUser] = useState('');
   const [inputUser, setInputUser] = useState('');
@@ -243,6 +247,15 @@ export default function LinkedInIntel() {
   const [connectionsRequested, setConnectionsRequested] = useState<string[]>([]);
   const [skillsAdded, setSkillsAdded] = useState<string[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [internships, setInternships] = useState<any[]>([]);
+  const [remoteOnly, setRemoteOnly] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/internships${remoteOnly ? '?remote=true' : ''}`)
+      .then(res => res.json())
+      .then(data => setInternships(data))
+      .catch(err => console.error("Failed to fetch internships", err));
+  }, [remoteOnly]);
 
   useEffect(() => {
     setIsClient(true);
@@ -296,6 +309,9 @@ export default function LinkedInIntel() {
   const handleConnect = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputUser.trim()) return;
+
+    if (isLocked) return;
+    if (!consumeSearch()) return;
 
     setIsIngesting(true);
     setIngestionStep(0);
@@ -379,6 +395,21 @@ export default function LinkedInIntel() {
 
   if (!isClient) return null;
 
+  if (!user) {
+    return (
+      <div style={{
+        display: 'flex',
+        minHeight: '100vh',
+        backgroundColor: '#f6f5f0',
+        padding: '2rem',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <LoginRequiredGate featureName="LinkedIn" />
+      </div>
+    );
+  }
+
   if (!linkedinUser) {
     return (
       <div style={{
@@ -431,7 +462,9 @@ export default function LinkedInIntel() {
           border: '1px solid #e5e3dc',
           textAlign: 'center'
         }}>
-          {!isIngesting ? (
+          {isLocked ? (
+            <PremiumFeatureGate featureName="LinkedIn" />
+          ) : !isIngesting ? (
             <form onSubmit={handleConnect} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
                 <Image src="/logo_linkedin.png" alt="LinkedIn Logo" width={180} height={50} style={{ objectFit: 'contain' }} />
@@ -470,27 +503,33 @@ export default function LinkedInIntel() {
                 />
               </div>
 
-              <button 
-                type="submit" 
-                style={{ 
-                  justifyContent: 'center', 
-                  padding: '0.9rem', 
-                  borderRadius: '12px', 
-                  fontSize: '1rem', 
-                  fontWeight: 600,
-                  backgroundColor: '#0a66c2',
-                  border: '1px solid #0a66c2',
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.6rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <span>Extract Professional DNA</span>
-                <ChevronRight size={18} />
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
+                <button 
+                  type="submit" 
+                  style={{ 
+                    justifyContent: 'center', 
+                    padding: '0.9rem', 
+                    borderRadius: '12px', 
+                    fontSize: '1rem', 
+                    fontWeight: 600,
+                    backgroundColor: '#0a66c2',
+                    border: '1px solid #0a66c2',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.6rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    width: '100%'
+                  }}
+                >
+                  <span>Ingest & Analyze Profile</span>
+                  <ChevronRight size={18} />
+                </button>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {remainingSearches} / 10 free searches remaining
+                </span>
+              </div>
 
               <div style={{ marginTop: '0.5rem' }}>
                 <Link href="/" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textDecoration: 'none' }}>
@@ -1335,6 +1374,54 @@ export default function LinkedInIntel() {
             </div>
           </div>
 
+        </div>
+
+        {/* Internship Suggestions Section */}
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '24px',
+          padding: '2rem',
+          border: '1px solid #e5e3dc',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.01)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <Target size={18} style={{ color: 'var(--accent-green)' }} />
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>Target Internships</h3>
+            </div>
+            
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              fontSize: '0.85rem',
+              color: 'var(--text-muted)',
+              cursor: 'pointer'
+            }}>
+              <input 
+                type="checkbox" 
+                checked={remoteOnly} 
+                onChange={(e) => setRemoteOnly(e.target.checked)} 
+                style={{ accentColor: 'var(--accent-green)', width: '16px', height: '16px' }}
+              />
+              Remote Only
+            </label>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+            {internships.map((internship: any) => (
+              <InternshipCard 
+                key={internship.id}
+                title={internship.title}
+                company={internship.company}
+                location={internship.location}
+                url={internship.url}
+                source={internship.source}
+                description={internship.description}
+                skills={internship.skills}
+              />
+            ))}
+          </div>
         </div>
 
       </main>
